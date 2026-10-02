@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>หุ่นยนต์ครูน้อย - เกมเพื่อการศึกษา</title>
+    
+    <!-- ฟอนต์ Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #e0f2fe; /* พื้นหลังสีฟ้าอ่อน */
+            --board-bg: #ffffff; /* สีพื้นหลังพาเนล */
+            --text-color: #334155; /* สีข้อความหลัก */
+            --text-muted: #64748b;
+            
+            /* สีเน้น */
+            --accent-yellow: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-blue: #3b82f6;
+            --accent-mint: #10b981;
+            
+            --wall-color: #94a3b8;
+            --btn-surface: #f1f5f9;
+            --btn-hover: #e2e8f0;
+            
+            /* สีบล็อกคำสั่งสดใส */
+            --block-f-bg: #4ade80;
+            --block-l-bg: #60a5fa;
+            --block-r-bg: #818cf8;
+            --block-loop-bg: #fb7185;
+            --block-until-bg: #c084fc;
+            --block-if-bg: #facc15;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
+            color: var(--text-color);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        h1, h2, h3, h4, .font-mali {
+            font-family: 'Mali', cursive;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* ส่วนหัวและแถบเลือกด่าน */
+        .header {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        @media(min-width: 768px) {
+            .header {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            color: #1e3a8a;
+            text-shadow: 2px 2px 0px #ffffff;
+        }
+
+        .level-selector {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .level-btn {
+            background-color: #ffffff;
+            color: var(--text-color);
+            border: 2px solid #e2e8f0;
+            border-radius: 2rem;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-family: 'Sarabun', sans-serif;
+            transition: all 0.2s;
+            text-align: center;
+            min-width: 4rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .level-btn:hover:not(:disabled) {
+            background-color: var(--btn-hover);
+            transform: translateY(-2px);
+        }
+        .level-btn.active {
+            background-color: var(--accent-blue);
+            color: #ffffff;
+            font-weight: bold;
+            border-color: var(--accent-blue);
+            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+        }
+        .level-btn:disabled {
+            background-color: #f1f5f9;
+            color: #94a3b8;
+            cursor: not-allowed;
+            border-color: #e2e8f0;
+            box-shadow: none;
+        }
+        .level-btn:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 4px var(--accent-yellow);
+        }
+
+        /* โครงสร้างหลัก ซ้ายขวา */
+        .main-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        @media (min-width: 768px) {
+            .main-layout { flex-direction: row; }
+            .left-panel { flex: 1; min-width: 0; }
+            .right-panel { flex: 1.2; min-width: 0; }
+        }
+
+        /* พาเนลซ้าย: แผนที่ */
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            background-color: var(--board-bg);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+
+        .level-info .badge {
+            display: inline-block;
+            background-color: var(--accent-blue);
+            color: #fff;
+            padding: 0.2rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .level-info h2 { font-size: 1.5rem; }
+
+        .canvas-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+        #game-canvas {
+            width: 100%;
+            max-width: 400px;
+            aspect-ratio: 1 / 1;
+            background-color: #f8fafc;
+            border: 4px solid var(--wall-color);
+            border-radius: 1rem;
+            box-shadow: inset 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+        
+        /* ปุ่มมาตรฐาน */
+        .btn {
+            padding: 0.5rem 1.25rem;
+            border-radius: 0.75rem;
+            border: none;
+            font-family: 'Sarabun', sans-serif;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+        }
+        .btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 rgba(0,0,0,0.1);
+        }
+        .btn:focus-visible { outline: none; box-shadow: 0 0 0 4px var(--accent-blue); }
+        .btn-primary { background-color: var(--accent-mint); color: #ffffff; }
+        .btn-primary:hover { background-color: #059669; }
+        .btn-secondary { background-color: var(--btn-surface); color: var(--text-color); }
+        .btn-secondary:hover { background-color: #cbd5e1; }
+        
+        .speed-select {
+            background-color: #ffffff;
+            color: var(--text-color);
+            border: 2px solid #e2e8f0;
+            padding: 0.5rem;
+            border-radius: 0.75rem;
+            font-family: inherit;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .speed-select:focus-visible { outline: none; border-color: var(--accent-blue); }
+
+        .output-box {
+            padding: 1rem;
+            border-radius: 0.75rem;
+            font-weight: bold;
+            text-align: center;
+            background-color: #f8fafc;
+            border: 2px solid #e2e8f0;
+            color: var(--text-color);
+        }
+        .output-box.success { background-color: #ecfdf5; border-color: var(--accent-mint); color: #065f46; }
+        .output-box.error { background-color: #fef2f2; border-color: var(--accent-red); color: #991b1b; }
+
+        /* พาเนลขวา: พื้นที่เขียนโปรแกรม */
+        .right-panel {
+            background-color: var(--board-bg);
+            border: none;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            height: 650px;
+        }
+
+        .palette-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+        .block-btn {
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: none;
+            font-weight: bold;
+            font-family: 'Sarabun', sans-serif;
+            cursor: pointer;
+            text-align: center;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.15);
+            transition: all 0.1s;
+        }
+        .block-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 rgba(0,0,0,0.15);
+        }
+        .block-btn:focus-visible { outline: none; box-shadow: 0 0 0 4px var(--text-color); }
+        .block-btn:hover { filter: brightness(1.05); }
+        
+        .workspace-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .workspace {
+            flex-grow: 1;
+            overflow-y: auto;
+            border: 2px dashed #cbd5e1;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            background-color: #f8fafc;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ลักษณะของบล็อกใน Workspace */
+        .block {
+            margin-bottom: 0.75rem;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            color: #fff;
+            border: 1px solid rgba(0,0,0,0.1);
+            box-shadow: 0 4px 0 rgba(0,0,0,0.15);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .block.running {
+            box-shadow: 0 0 0 4px var(--accent-yellow), 0 4px 0 rgba(0,0,0,0.15);
+            transform: scale(1.02);
+            z-index: 10;
+        }
+        
+        .block-f { background-color: var(--block-f-bg); color: white; text-shadow: 1px 1px 0 rgba(0,0,0,0.2); }
+        .block-l, .block-r { background-color: var(--block-l-bg); color: white; text-shadow: 1px 1px 0 rgba(0,0,0,0.2); }
+        .block-loop { background-color: var(--block-loop-bg); color: white; text-shadow: 1px 1px 0 rgba(0,0,0,0.2); }
+        .block-until { background-color: var(--block-until-bg); color: white; text-shadow: 1px 1px 0 rgba(0,0,0,0.2); }
+        .block-if { background-color: var(--block-if-bg); color: #451a03; }
+
+        .block-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .block-children {
+            margin-top: 0.75rem;
+            margin-left: 0.5rem;
+            padding-left: 1rem;
+            border-left: 3px solid rgba(255,255,255,0.5);
+            min-height: 3rem;
+        }
+        .block-if .block-children, .block-l .block-children, .block-r .block-children {
+            border-left-color: rgba(0,0,0,0.2);
+        }
+
+        .loop-n-select {
+            color: #0f172a;
+            margin-left: 0.5rem;
+            border-radius: 0.25rem;
+            padding: 0.1rem 0.25rem;
+            font-family: inherit;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .delete-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            font-weight: bold;
+            padding: 0.2rem 0.6rem;
+            border-radius: 0.25rem;
+            transition: all 0.2s;
+        }
+        .delete-btn:hover { background: rgba(255,255,255,0.4); }
+        .delete-btn:focus-visible { outline: 2px solid #fff; }
+
+        /* ปุ่มแทรกบล็อก */
+        .insert-target-btn {
+            background-color: rgba(255,255,255,0.4);
+            border: 1px dashed rgba(0,0,0,0.2);
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            color: #334155;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            width: 100%;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .insert-target-btn:hover { background-color: rgba(255,255,255,0.6); }
+        .insert-target-btn:focus-visible { outline: 2px solid var(--text-color); }
+        .insert-target-btn.active {
+            background-color: #fef08a;
+            color: #854d0e;
+            font-weight: bold;
+            border: 2px solid #eab308;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        #btn-insert-main { margin-top: 1rem; }
+
+        /* มุมครู */
+        .teacher-corner {
+            background-color: var(--board-bg);
+            border: none;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            border-radius: 1rem;
+            overflow: hidden;
+        }
+        .teacher-corner summary {
+            padding: 1.25rem;
+            background-color: #f8fafc;
+            color: #1e3a8a;
+            font-size: 1.25rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .teacher-corner summary:hover { background-color: #f1f5f9; }
+        .teacher-corner summary:focus-visible { outline: none; box-shadow: inset 0 0 0 4px var(--accent-blue); }
+        .teacher-corner .content { padding: 1.5rem; font-size: 1.1rem; }
+        
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div>
+                <h1>หุ่นยนต์ครูน้อย</h1>
+                <p class="font-mali" style="font-size: 1.2rem; color: #334155;">ดาวรวม: <span id="total-stars" style="color: var(--accent-yellow); font-weight: bold; text-shadow: 1px 1px 0px rgba(0,0,0,0.1); font-size: 1.5rem;">0</span>/18</p>
+            </div>
+            <div class="level-selector" id="level-selector">
+                <!-- ปุ่มเลือกด่านจะถูกสร้างด้วย JavaScript -->
+            </div>
+        </header>
+
+        <main class="main-layout">
+            <section class="left-panel">
+                <div class="level-info">
+                    <span class="badge" id="concept-badge">แนวคิด</span>
+                    <h2 id="level-title">ด่าน X</h2>
+                    <p id="level-desc">รายละเอียดด่าน</p>
+                </div>
+                
+                <div class="canvas-container">
+                    <canvas id="game-canvas" width="400" height="400"></canvas>
+                </div>
+                
+                <div class="controls">
+                    <button class="btn btn-primary" id="btn-play">เริ่มทำงาน</button>
+                    <button class="btn btn-secondary" id="btn-reset">รีเซ็ตหุ่นยนต์</button>
+                    <select id="speed-select" class="speed-select">
+                        <option value="1">ความเร็ว: ช้า</option>
+                        <option value="0.5" selected>ความเร็ว: ปกติ</option>
+                        <option value="0.1">ความเร็ว: เร็ว</option>
+                    </select>
+                </div>
+                
+                <div class="output-box" id="output-box">
+                    รอคำสั่ง...
+                </div>
+            </section>
+            
+            <section class="right-panel">
+                <h3 class="font-mali" style="color: #1e3a8a; font-size: 1.5rem;">กล่องเครื่องมือ</h3>
+                <div class="palette-grid">
+                    <button class="block-btn" style="background:var(--block-f-bg); color:white; text-shadow: 1px 1px 0 rgba(0,0,0,0.2);" onclick="addBlock('F')">เดินหน้า</button>
+                    <button class="block-btn" style="background:var(--block-l-bg); color:white; text-shadow: 1px 1px 0 rgba(0,0,0,0.2);" onclick="addBlock('L')">เลี้ยวซ้าย</button>
+                    <button class="block-btn" style="background:var(--block-r-bg); color:white; text-shadow: 1px 1px 0 rgba(0,0,0,0.2);" onclick="addBlock('R')">เลี้ยวขวา</button>
+                    <button class="block-btn" style="background:var(--block-loop-bg); color:white; text-shadow: 1px 1px 0 rgba(0,0,0,0.2);" onclick="addBlock('LOOP')">วนซ้ำ</button>
+                    <button id="btn-block-until" class="block-btn hidden" style="background:var(--block-until-bg); color:white; text-shadow: 1px 1px 0 rgba(0,0,0,0.2);" onclick="addBlock('UNTIL')">วนจนถึงธง</button>
+                    <button id="btn-block-if" class="block-btn hidden" style="background:var(--block-if-bg); color:#451a03;" onclick="addBlock('IF_WALL')">ถ้าชนกำแพง</button>
+                </div>
+                
+                <div class="workspace-header">
+                    <h3 class="font-mali" style="color: #1e3a8a; font-size: 1.5rem;">พื้นที่เขียนโปรแกรม</h3>
+                    <div>
+                        <button class="btn btn-secondary" style="padding:0.25rem 0.5rem; font-size:0.9rem;" id="btn-clear">ล้างโปรแกรม</button>
+                        <button class="btn btn-primary" style="padding:0.25rem 0.5rem; font-size:0.9rem;" id="btn-solution">ดูเฉลยแนวทาง</button>
+                    </div>
+                </div>
+                <div style="font-size: 0.9rem; margin-bottom: 0.5rem;">
+                    ใช้บล็อก: <span id="used-blocks" style="font-weight:bold;">0</span> | เป้าหมาย 3 ดาว: ไม่เกิน <span id="par-blocks" style="font-weight:bold; color:var(--accent-yellow)">0</span> บล็อก
+                </div>
+                
+                <div class="workspace" id="workspace">
+                    <!-- บล็อกโปรแกรมจะแสดงที่นี่ -->
+                </div>
+                <button id="btn-insert-main" class="insert-target-btn active" onclick="setInsertTarget(null)">
+                    [ กำลังใส่ที่โปรแกรมหลัก ]
+                </button>
+            </section>
+        </main>
+
+        <section class="teacher-corner">
+            <details>
+                <summary class="font-mali">
+                    มุมครู: แนวทางการสอนด่านนี้
+                    <span style="font-size:0.8em;">▼</span>
+                </summary>
+                <div class="content">
+                    <p style="margin-bottom:0.5rem;"><strong style="color:var(--accent-yellow);">แนวคิด:</strong> <span id="teacher-concept"></span></p>
+                    <p><strong>ชวนอภิปราย:</strong> <span id="teacher-question"></span></p>
+                </div>
+            </details>
+        </section>
+    </div>
+
+    <script>
+        // --- ฐานข้อมูลด่านทั้ง 6 ---
+        const LEVELS = [
+            {
+                id: 1,
+                title: 'ก้าวแรก',
+                concept: 'ลำดับขั้นตอน (Sequence)',
+                desc: 'พาหุ่นยนต์เดินหน้าไปที่ธง เพื่อทำความเข้าใจการทำงานทีละคำสั่ง',
+                grid: [
+                    '......',
+                    '......',
+                    '......',
+                    '......',
+                    '......',
+                    'S..G..'
+                ],
+                startDir: 1, // 0:บน, 1:ขวา, 2:ล่าง, 3:ซ้าย
+                par: 3,
+                teacherConcept: 'การทำงานเป็นลำดับ (Sequence)',
+                teacherQuestion: 'ให้นักเรียนสังเกตว่า ถ้านำคำสั่งเลี้ยวไปแทรกระหว่างการเดินหน้า ผลลัพธ์จะเปลี่ยนไปอย่างไร? (เน้นย้ำว่าคอมพิวเตอร์ทำงานตามลำดับจากบนลงล่างอย่างเคร่งครัด)',
+                solution: [{type:'F'}, {type:'F'}, {type:'F'}]
+            },
+            {
+                id: 2,
+                title: 'เลี้ยวซ้ายขวา',
+                concept: 'ลำดับขั้นตอน (Sequence)',
+                desc: 'เดินไปตามทาง เลี้ยวซ้ายหรือขวาให้ถูกต้องเพื่อไปถึงธง',
+                grid: [
+                    '......',
+                    '......',
+                    '...G..',
+                    '......',
+                    '......',
+                    'S.....'
+                ],
+                startDir: 0,
+                par: 7,
+                teacherConcept: 'ทิศทางอ้างอิงจากตัวละคร (Relative Direction)',
+                teacherQuestion: 'คำว่า "ซ้าย" หรือ "ขวา" คือซ้ายขวาของใคร? (ให้นักเรียนลองลุกขึ้นยืนแล้วหันตามหุ่นยนต์ เพื่อทำความเข้าใจว่าต้องอ้างอิงทิศทางจากตัวหุ่นยนต์ ไม่ใช่จากหน้าจอ)',
+                solution: [{type:'F'},{type:'F'},{type:'F'},{type:'R'},{type:'F'},{type:'F'},{type:'F'}]
+            },
+            {
+                id: 3,
+                title: 'ขั้นบันได',
+                concept: 'การวนซ้ำ (Loop)',
+                desc: 'เส้นทางเป็นรูปแบบซ้ำๆ ลองใช้บล็อก "วนซ้ำ" เพื่อลดจำนวนคำสั่งลงดูสิ',
+                grid: [
+                    '......',
+                    '......',
+                    '....G.',
+                    '......',
+                    '......',
+                    'S.....'
+                ],
+                startDir: 1,
+                par: 6,
+                teacherConcept: 'การจดจำรูปแบบ (Pattern Recognition)',
+                teacherQuestion: 'นักเรียนสังเกตเห็นชุดคำสั่งใดที่ซ้ำกันบ้าง? การใช้บล็อกวนซ้ำช่วยให้โปรแกรมสั้นลงและอ่านทำความเข้าใจได้ง่ายขึ้นอย่างไร?',
+                solution: [
+                    {type:'F'}, 
+                    {type:'LOOP', n:3, children:[ {type:'L'}, {type:'F'}, {type:'R'}, {type:'F'} ]}
+                ]
+            },
+            {
+                id: 4,
+                title: 'เก็บดาวให้ครบ',
+                concept: 'การวนซ้ำ (Loop)',
+                desc: 'เดินตามเส้นทางเพื่อเก็บดาว (★) ให้ครบทุกดวงก่อนไปที่ธง',
+                grid: [
+                    'S..*..',
+                    'G.....',
+                    '......',
+                    '*..*..',
+                    '......',
+                    '......'
+                ],
+                startDir: 1,
+                par: 7,
+                teacherConcept: 'การวนซ้ำเพื่อแก้ปัญหาที่ยาวขึ้น',
+                teacherQuestion: 'ถ้าแผนที่ใหญ่ขึ้นเป็น 100x100 ช่อง เราจะใช้วิธีเขียนคำสั่งเดินทีละก้าว หรือใช้วนซ้ำ? วิธีไหนประหยัดแรงผู้เขียนโปรแกรมมากกว่ากัน?',
+                solution: [
+                    {type:'LOOP', n:3, children:[ {type:'F'}, {type:'F'}, {type:'F'}, {type:'R'} ]},
+                    {type:'F'}, {type:'F'}
+                ]
+            },
+            {
+                id: 5,
+                title: 'ทางตัน',
+                concept: 'เงื่อนไข (Conditionals)',
+                desc: 'ใช้บล็อก "วนจนถึงธง" ร่วมกับ "ถ้าชนกำแพง" เพื่อเดินเลาะขอบไปหาธง',
+                grid: [
+                    '......',
+                    '.####.',
+                    '.####.',
+                    '.####.',
+                    '.####.',
+                    'S##G..'
+                ],
+                startDir: 0,
+                par: 4,
+                teacherConcept: 'เงื่อนไข (Conditionals)',
+                teacherQuestion: 'ทำไมเราถึงต้องใช้คำสั่ง "ถ้า...แล้ว"? (เงื่อนไขช่วยให้หุ่นยนต์ตัดสินใจและรับมือกับสถานการณ์ที่ไม่คาดคิด หรือการเปลี่ยนแปลงของแผนที่ได้โดยไม่ต้องเขียนคำสั่งใหม่ทั้งหมด)',
+                solution: [
+                    {type:'UNTIL', children:[ 
+                        {type:'IF_WALL', children:[ {type:'R'} ]},
+                        {type:'F'}
+                    ]}
+                ]
+            },
+            {
+                id: 6,
+                title: 'ทางงู',
+                concept: 'ลูปซ้อนลูป (Nested Loops)',
+                desc: 'นำการวนซ้ำมาซ้อนกัน เพื่อแก้ปัญหาเส้นทางที่ซับซ้อนอย่างเป็นระบบ',
+                grid: [
+                    'S....*',
+                    '*.....',
+                    '.....*',
+                    '*.....',
+                    'G.....',
+                    '......'
+                ],
+                startDir: 1,
+                par: 11,
+                teacherConcept: 'ลูปซ้อนลูป (Nested Loops)',
+                teacherQuestion: 'การจัดกลุ่มคำสั่งซ้ำๆ เป็นชั้นๆ ช่วยให้เราเห็นภาพรวมของการทำงานได้ดีขึ้นไหม? โปรแกรมที่สั้นที่สุด กับโปรแกรมที่เข้าใจง่ายที่สุด คือโปรแกรมเดียวกันเสมอไปหรือไม่?',
+                solution: [
+                    {type:'LOOP', n:2, children:[
+                        {type:'LOOP', n:5, children:[ {type:'F'} ]},
+                        {type:'R'}, {type:'F'}, {type:'R'},
+                        {type:'LOOP', n:5, children:[ {type:'F'} ]},
+                        {type:'L'}, {type:'F'}, {type:'L'}
+                    ]}
+                ]
+            }
+        ];
+
+        // เตรียมข้อมูลเป้าหมายและจุดเริ่มต้นของแต่ละด่าน
+        LEVELS.forEach(level => {
+            level.totalStars = 0;
+            for (let y = 0; y < 6; y++) {
+                for (let x = 0; x < 6; x++) {
+                    let c = level.grid[y][x];
+                    if (c === 'S') { level.startX = x; level.startY = y; }
+                    if (c === 'G') { level.goalX = x; level.goalY = y; }
+                    if (c === '*') { level.totalStars++; }
+                }
+            }
+        });
+
+        // --- สถานะของแอปพลิเคชัน ---
+        let currentLevelId = 1;
+        let program = [];
+        let insertTargetId = null;
+        let gameProgress = {};
+        
+        let isAnimating = false;
+        let currentTrace = [];
+        let traceIndex = 0;
+        let lastRenderedState = null;
+
+        // โหลดและบันทึกข้อมูล (ใช้ try/catch ตามข้อกำหนด)
+        function loadProgress() {
+            try {
+                let stored = localStorage.getItem('hunyonKruNoiProgress');
+                if (stored) gameProgress = JSON.parse(stored);
+            } catch(e) { console.warn('Cannot load progress'); }
+        }
+        function saveProgress() {
+            try {
+                localStorage.setItem('hunyonKruNoiProgress', JSON.stringify(gameProgress));
+            } catch(e) { console.warn('Cannot save progress'); }
+        }
+
+        // --- ระบบสร้าง ID อัตโนมัติ ---
+        function generateId() {
+            return 'b_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // --- การจัดการ Workspace ---
+        function addBlock(type) {
+            let newBlock = { id: generateId(), type: type };
+            if (type === 'LOOP') {
+                newBlock.n = 2;
+                newBlock.children = [];
+            } else if (type === 'UNTIL' || type === 'IF_WALL') {
+                newBlock.children = [];
+            }
+            
+            if (insertTargetId === null) {
+                program.push(newBlock);
+            } else {
+                let parent = findBlock(program, insertTargetId);
+                if (parent && parent.children) {
+                    parent.children.push(newBlock);
+                } else {
+                    program.push(newBlock); // fallback
+                }
+            }
+            renderWorkspace();
+        }
+
+        function findBlock(arr, id) {
+            for (let b of arr) {
+                if (b.id === id) return b;
+                if (b.children) {
+                    let found = findBlock(b.children, id);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+
+        function deleteBlock(id) {
+            function remove(arr) {
+                for (let i = 0; i < arr.length; i++) {
+                    if (arr[i].id === id) {
+                        arr.splice(i, 1);
+                        return true;
+                    }
+                    if (arr[i].children && remove(arr[i].children)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            remove(program);
+            if (insertTargetId && !findBlock(program, insertTargetId)) {
+                setInsertTarget(null);
+            } else {
+                renderWorkspace();
+            }
+        }
+
+        function setInsertTarget(id) {
+            insertTargetId = id;
+            renderWorkspace();
+            let mainBtn = document.getElementById('btn-insert-main');
+            if (id === null) {
+                mainBtn.classList.add('active');
+                mainBtn.textContent = '[ กำลังใส่ที่โปรแกรมหลัก ]';
+            } else {
+                mainBtn.classList.remove('active');
+                mainBtn.textContent = 'กลับมาใส่ที่โปรแกรมหลัก';
+            }
+        }
+
+        function countBlocks(blocks) {
+            let count = 0;
+            for (let b of blocks) {
+                count++;
+                if (b.children) count += countBlocks(b.children);
+            }
+            return count;
+        }
+
+        function renderWorkspace() {
+            const ws = document.getElementById('workspace');
+            ws.innerHTML = '';
+            
+            function createBlockDOM(block, parentDOM) {
+                let div = document.createElement('div');
+                div.className = `block block-${block.type.toLowerCase()}`;
+                div.id = 'block-' + block.id;
+                
+                let header = document.createElement('div');
+                header.className = 'block-header';
+                
+                let title = document.createElement('span');
+                title.style.fontWeight = 'bold';
+                if (block.type === 'F') title.textContent = 'เดินหน้า';
+                else if (block.type === 'L') title.textContent = 'เลี้ยวซ้าย';
+                else if (block.type === 'R') title.textContent = 'เลี้ยวขวา';
+                else if (block.type === 'LOOP') title.textContent = 'วนซ้ำ';
+                else if (block.type === 'UNTIL') title.textContent = 'วนจนกว่าจะถึงธง';
+                else if (block.type === 'IF_WALL') title.textContent = 'ถ้าชนกำแพง';
+                header.appendChild(title);
+                
+                if (block.type === 'LOOP') {
+                    let container = document.createElement('span');
+                    let sel = document.createElement('select');
+                    sel.className = 'loop-n-select';
+                    for (let i=2; i<=6; i++) {
+                        let opt = document.createElement('option');
+                        opt.value = i; opt.textContent = i;
+                        if(i === block.n) opt.selected = true;
+                        sel.appendChild(opt);
+                    }
+                    sel.onchange = (e) => { block.n = parseInt(e.target.value); };
+                    container.appendChild(sel);
+                    
+                    let label = document.createElement('span');
+                    label.textContent = ' รอบ';
+                    container.appendChild(label);
+                    header.appendChild(container);
+                }
+                
+                let delBtn = document.createElement('button');
+                delBtn.className = 'delete-btn';
+                delBtn.textContent = 'ลบ';
+                delBtn.setAttribute('aria-label', 'ลบบล็อกนี้');
+                delBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteBlock(block.id);
+                };
+                header.appendChild(delBtn);
+                
+                div.appendChild(header);
+                
+                if (block.children !== undefined) {
+                    let childrenContainer = document.createElement('div');
+                    childrenContainer.className = 'block-children';
+                    block.children.forEach(child => createBlockDOM(child, childrenContainer));
+                    div.appendChild(childrenContainer);
+                    
+                    let targetBtn = document.createElement('button');
+                    targetBtn.className = `insert-target-btn ${insertTargetId === block.id ? 'active' : ''}`;
+                    targetBtn.textContent = insertTargetId === block.id ? '[ กำลังใส่ในนี้ ]' : 'ใส่ในนี้';
+                    targetBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        setInsertTarget(block.id);
+                    };
+                    div.appendChild(targetBtn);
+                }
+                
+                parentDOM.appendChild(div);
+            }
+            
+            program.forEach(b => createBlockDOM(b, ws));
+            
+            // อัปเดตตัวนับ
+            let used = countBlocks(program);
+            let par = LEVELS[currentLevelId - 1].par;
+            let el = document.getElementById('used-blocks');
+            el.textContent = used;
+            if (used > par) {
+                el.style.color = 'var(--accent-red)';
+            } else {
+                el.style.color = 'var(--accent-mint)';
+            }
+        }
+
+        // --- ตัวจำลองการทำงาน (Simulator) ---
+        function cloneState(s) {
+            return { x: s.x, y: s.y, dir: s.dir, stars: s.stars, collected: new Set(s.collected) };
+        }
+
+        function simulate(prog, level) {
+            let state = {
+                x: level.startX,
+                y: level.startY,
+                dir: level.startDir,
+                stars: 0,
+                totalStars: level.totalStars,
+                collected: new Set(),
+                steps: 0
+            };
+            let trace = [];
+            let isFinished = false;
+            
+            trace.push({ type: 'start', state: cloneState(state) });
+            
+            function runBlockList(blocks) {
+                for (let block of blocks) {
+                    if (isFinished) return;
+                    runBlock(block);
+                }
+            }
+            
+            function runBlock(block) {
+                if (isFinished) return;
+                state.steps++;
+                
+                // ป้องกัน Infinite Loop
+                if (state.steps > 900) {
+                    isFinished = true;
+                    trace.push({ type: 'fail', msg: 'โปรแกรมทำงานนานเกินไป (เกิน 900 ขั้น)', blockId: block.id, state: cloneState(state) });
+                    return;
+                }
+                
+                trace.push({ type: 'active', blockId: block.id, state: cloneState(state) });
+                
+                if (block.type === 'F') {
+                    let nx = state.x, ny = state.y;
+                    if (state.dir === 0) ny--;
+                    else if (state.dir === 1) nx++;
+                    else if (state.dir === 2) ny++;
+                    else if (state.dir === 3) nx--;
+                    
+                    if (nx < 0 || nx > 5 || ny < 0 || ny > 5 || level.grid[ny][nx] === '#') {
+                        isFinished = true;
+                        trace.push({ type: 'fail', msg: 'ชนกำแพงหรือตกขอบแผนที่!', blockId: block.id, state: cloneState(state) });
+                    } else {
+                        state.x = nx; state.y = ny;
+                        if (level.grid[ny][nx] === '*') {
+                            let key = `${nx},${ny}`;
+                            if (!state.collected.has(key)) {
+                                state.collected.add(key);
+                                state.stars++;
+                            }
+                        }
+                        trace.push({ type: 'move', blockId: block.id, state: cloneState(state) });
+                    }
+                } else if (block.type === 'L') {
+                    state.dir = (state.dir + 3) % 4;
+                    trace.push({ type: 'turn', blockId: block.id, state: cloneState(state) });
+                } else if (block.type === 'R') {
+                    state.dir = (state.dir + 1) % 4;
+                    trace.push({ type: 'turn', blockId: block.id, state: cloneState(state) });
+                } else if (block.type === 'LOOP') {
+                    for (let i = 0; i < block.n; i++) {
+                        if (isFinished) return;
+                        runBlockList(block.children);
+                    }
+                } else if (block.type === 'UNTIL') {
+                    let iterations = 0;
+                    while (!isFinished) {
+                        if (state.x === level.goalX && state.y === level.goalY) break;
+                        iterations++;
+                        if (iterations > 60) {
+                            isFinished = true;
+                            trace.push({ type: 'fail', msg: 'บล็อกวนจนถึงธง ทำงานนานเกินไป (เกิน 60 รอบ)', blockId: block.id, state: cloneState(state) });
+                            return;
+                        }
+                        runBlockList(block.children);
+                    }
+                } else if (block.type === 'IF_WALL') {
+                    let nx = state.x, ny = state.y;
+                    if (state.dir === 0) ny--;
+                    else if (state.dir === 1) nx++;
+                    else if (state.dir === 2) ny++;
+                    else if (state.dir === 3) nx--;
+                    
+                    let isWall = (nx < 0 || nx > 5 || ny < 0 || ny > 5 || level.grid[ny][nx] === '#');
+                    if (isWall) {
+                        runBlockList(block.children);
+                    }
+                }
+            }
+            
+            runBlockList(prog);
+            
+            if (!isFinished) {
+                if (state.x === level.goalX && state.y === level.goalY) {
+                    if (state.stars === state.totalStars) {
+                        trace.push({ type: 'win', msg: 'สำเร็จ! หุ่นยนต์ถึงธงและเก็บดาวครบ', state: cloneState(state) });
+                    } else {
+                        trace.push({ type: 'fail', msg: 'ถึงธงแล้ว แต่ยังเก็บดาวไม่ครบ', state: cloneState(state) });
+                    }
+                } else {
+                    trace.push({ type: 'fail', msg: 'โปรแกรมจบแล้ว แต่ยังไม่ถึงธง', state: cloneState(state) });
+                }
+            }
+            
+            return trace;
+        }
+
+        // --- การวาด Canvas ---
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const gridSize = 6;
+        let cellSize = 50;
+
+        function resizeCanvas() {
+            let container = document.querySelector('.canvas-container');
+            let cw = container.clientWidth;
+            if (cw > 400) cw = 400;
+            canvas.width = cw;
+            canvas.height = cw; // บังคับเป็นสี่เหลี่ยมจัตุรัส
+            
+            if (LEVELS[currentLevelId - 1] && lastRenderedState) {
+                drawMap(LEVELS[currentLevelId - 1], lastRenderedState);
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function drawMap(level, state) {
+            lastRenderedState = state;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            cellSize = canvas.width / gridSize;
+            
+            // วาดพื้นหลังตาราง
+            for (let y = 0; y < gridSize; y++) {
+                for (let x = 0; x < gridSize; x++) {
+                    ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                    
+                    let cell = level.grid[y][x];
+                    if (cell === '#') {
+                        ctx.fillStyle = 'var(--wall-color)';
+                        ctx.fillRect(x * cellSize + 2, y * cellSize + 2, cellSize - 4, cellSize - 4);
+                    } else if (cell === 'G' && (x !== state.x || y !== state.y)) {
+                        drawFlag(x, y);
+                    }
+                }
+            }
+            
+            // วาดดาว
+            level.grid.forEach((row, y) => {
+                for (let x = 0; x < gridSize; x++) {
+                    if (row[x] === '*' && (!state.collected || !state.collected.has(`${x},${y}`))) {
+                        drawStar(x, y);
+                    }
+                }
+            });
+            
+            // วาดหุ่นยนต์
+            drawRobot(state.x, state.y, state.dir);
+        }
+
+        function drawFlag(x, y) {
+            let px = x * cellSize;
+            let py = y * cellSize;
+            
+            // เสาธง
+            ctx.fillStyle = '#bdc3c7';
+            ctx.fillRect(px + cellSize*0.2, py + cellSize*0.2, 4, cellSize*0.6);
+            
+            // ตัวธง
+            ctx.fillStyle = '#e74c3c';
+            ctx.beginPath();
+            ctx.moveTo(px + cellSize*0.2 + 4, py + cellSize*0.2);
+            ctx.lineTo(px + cellSize*0.8, py + cellSize*0.35);
+            ctx.lineTo(px + cellSize*0.2 + 4, py + cellSize*0.5);
+            ctx.fill();
+        }
+
+        function drawStar(x, y) {
+            let cx = x * cellSize + cellSize / 2;
+            let cy = y * cellSize + cellSize / 2;
+            let outerRadius = cellSize * 0.3;
+            let innerRadius = cellSize * 0.15;
+            let spikes = 5;
+            
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.beginPath();
+            ctx.fillStyle = '#f1c40f';
+            let rot = Math.PI / 2 * 3;
+            let xPt, yPt;
+            let step = Math.PI / spikes;
+
+            ctx.moveTo(0, -outerRadius);
+            for (let i = 0; i < spikes; i++) {
+                xPt = Math.cos(rot) * outerRadius;
+                yPt = Math.sin(rot) * outerRadius;
+                ctx.lineTo(xPt, yPt);
+                rot += step;
+
+                xPt = Math.cos(rot) * innerRadius;
+                yPt = Math.sin(rot) * innerRadius;
+                ctx.lineTo(xPt, yPt);
+                rot += step;
+            }
+            ctx.lineTo(0, -outerRadius);
+            ctx.closePath();
+            ctx.fill();
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = '#d35400';
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawRobot(x, y, dir) {
+            let cx = x * cellSize + cellSize / 2;
+            let cy = y * cellSize + cellSize / 2;
+            let size = cellSize * 0.7;
+            
+            ctx.save();
+            ctx.translate(cx, cy);
+            // ทิศทาง: 0:บน, 1:ขวา, 2:ล่าง, 3:ซ้าย
+            ctx.rotate((dir - 1) * 90 * Math.PI / 180);
+            
+            // ตัวหุ่นยนต์
+            ctx.fillStyle = '#f1c40f';
+            ctx.beginPath();
+            ctx.arc(0, 0, size/2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#1a2a22';
+            ctx.stroke();
+            
+            // ตัวชี้ทิศทาง
+            ctx.fillStyle = '#e74c3c';
+            ctx.beginPath();
+            ctx.moveTo(size/2 - 2, 0);
+            ctx.lineTo(0, -size/3);
+            ctx.lineTo(0, size/3);
+            ctx.fill();
+            
+            ctx.restore();
+        }
+
+        // --- การควบคุมและแอนิเมชัน ---
+        function showOutput(msg, type) {
+            let box = document.getElementById('output-box');
+            box.textContent = msg;
+            box.className = 'output-box ' + type;
+        }
+
+        function getDelay() {
+            let speed = parseFloat(document.getElementById('speed-select').value);
+            return speed * 600;
+        }
+
+        function handleWin() {
+            let l = LEVELS[currentLevelId - 1];
+            let usedBlocks = countBlocks(program);
+            let stars = 1;
+            if (usedBlocks <= l.par) stars = 3;
+            else if (usedBlocks <= l.par + 3) stars = 2;
+            
+            let currentBest = gameProgress[l.id] || 0;
+            if (stars > currentBest) {
+                gameProgress[l.id] = stars;
+                saveProgress();
+            }
+            
+            renderLevelSelector(); // อัปเดตดาวและปลดล็อกด่าน
+        }
+
+        function startAnimation(trace) {
+            isAnimating = true;
+            currentTrace = trace;
+            traceIndex = 0;
+            
+            document.querySelectorAll('.block').forEach(b => b.classList.remove('running'));
+            
+            // เคารพการตั้งค่า prefers-reduced-motion
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                let lastState = null;
+                for (let i = trace.length - 1; i >= 0; i--) {
+                    if (trace[i].state) {
+                        lastState = trace[i].state;
+                        break;
+                    }
+                }
+                if (lastState) drawMap(LEVELS[currentLevelId - 1], lastState);
+                
+                let endTrace = trace[trace.length - 1];
+                if (endTrace.type === 'win') {
+                    showOutput(endTrace.msg, 'success');
+                    handleWin();
+                } else if (endTrace.type === 'fail') {
+                    showOutput(endTrace.msg, 'error');
+                }
+                isAnimating = false;
+                return;
+            }
+            
+            setTimeout(animateNext, getDelay());
+        }
+
+        function animateNext() {
+            if (!isAnimating) return;
+            if (traceIndex >= currentTrace.length) {
+                isAnimating = false;
+                return;
+            }
+            
+            let step = currentTrace[traceIndex];
+            document.querySelectorAll('.block').forEach(b => b.classList.remove('running'));
+            
+            if (step.blockId) {
+                let el = document.getElementById('block-' + step.blockId);
+                if (el) {
+                    el.classList.add('running');
+                    // เลื่อนหน้าจอให้เห็นบล็อกที่กำลังทำงาน
+                    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }
+            
+            if (step.state) {
+                drawMap(LEVELS[currentLevelId - 1], step.state);
+            }
+            
+            if (step.type === 'win') {
+                showOutput(step.msg, 'success');
+                handleWin();
+            } else if (step.type === 'fail') {
+                showOutput(step.msg, 'error');
+            }
+            
+            traceIndex++;
+            
+            if (step.type === 'active') {
+                setTimeout(animateNext, getDelay() / 3); // แสดงไฟกระพริบเร็วๆ
+            } else if (step.type === 'win' || step.type === 'fail') {
+                isAnimating = false;
+            } else {
+                setTimeout(animateNext, getDelay());
+            }
+        }
+
+        // --- การจัดการด่านและการเริ่มต้น ---
+        function renderLevelSelector() {
+            const container = document.getElementById('level-selector');
+            container.innerHTML = '';
+            
+            let totalStars = 0;
+            for (let l of LEVELS) {
+                let stars = gameProgress[l.id] || 0;
+                totalStars += stars;
+                
+                let btn = document.createElement('button');
+                let isLocked = false;
+                if (l.id > 1) {
+                    let prevStars = gameProgress[l.id - 1] || 0;
+                    if (prevStars < 1) isLocked = true;
+                }
+                
+                if (isLocked) {
+                    btn.className = 'level-btn';
+                    btn.disabled = true;
+                    btn.textContent = `(ล็อก) ด่าน ${l.id}`;
+                } else {
+                    btn.className = `level-btn ${l.id === currentLevelId ? 'active' : ''}`;
+                    let starsText = '';
+                    for(let i=0; i<3; i++) starsText += i < stars ? '★' : '☆';
+                    btn.innerHTML = `ด่าน ${l.id}<br><span style="font-size:0.9rem; color:${l.id === currentLevelId ? '#fde047' : '#f59e0b'}">${starsText}</span>`;
+                    btn.onclick = () => loadLevel(l.id);
+                }
+                container.appendChild(btn);
+            }
+            
+            document.getElementById('total-stars').textContent = totalStars;
+        }
+
+        function loadLevel(id) {
+            isAnimating = false;
+            currentLevelId = id;
+            program = [];
+            setInsertTarget(null);
+            let l = LEVELS[id - 1];
+            
+            document.getElementById('concept-badge').textContent = l.concept;
+            document.getElementById('level-title').textContent = `ด่าน ${l.id}: ${l.title}`;
+            document.getElementById('level-desc').textContent = l.desc;
+            document.getElementById('par-blocks').textContent = l.par;
+            
+            document.getElementById('teacher-concept').textContent = l.teacherConcept;
+            document.getElementById('teacher-question').textContent = l.teacherQuestion;
+            
+            // ปลดล็อกบล็อกขั้นสูง
+            let untilBtn = document.getElementById('btn-block-until');
+            let ifBtn = document.getElementById('btn-block-if');
+            if (id >= 5) {
+                untilBtn.classList.remove('hidden');
+                ifBtn.classList.remove('hidden');
+            } else {
+                untilBtn.classList.add('hidden');
+                ifBtn.classList.add('hidden');
+            }
+            
+            showOutput('รอคำสั่ง...', 'neutral');
+            
+            renderLevelSelector();
+            renderWorkspace();
+            
+            lastRenderedState = { x: l.startX, y: l.startY, dir: l.startDir, collected: new Set() };
+            resizeCanvas(); // วาดแผนที่เริ่มต้น
+        }
+
+        // --- ผูกเหตุการณ์ปุ่มหลัก ---
+        document.getElementById('btn-play').onclick = () => {
+            if (isAnimating) return;
+            if (program.length === 0) {
+                showOutput('โปรแกรมว่างเปล่า! กรุณากดเพิ่มบล็อกคำสั่งก่อน', 'error');
+                return;
+            }
+            
+            showOutput('กำลังทำงาน...', 'neutral');
+            let l = LEVELS[currentLevelId - 1];
+            let trace = simulate(program, l);
+            startAnimation(trace);
+        };
+
+        document.getElementById('btn-reset').onclick = () => {
+            isAnimating = false;
+            let l = LEVELS[currentLevelId - 1];
+            lastRenderedState = { x: l.startX, y: l.startY, dir: l.startDir, collected: new Set() };
+            drawMap(l, lastRenderedState);
+            showOutput('รอคำสั่ง...', 'neutral');
+            document.querySelectorAll('.block').forEach(b => b.classList.remove('running'));
+        };
+
+        document.getElementById('btn-clear').onclick = () => {
+            program = [];
+            setInsertTarget(null);
+            renderWorkspace();
+            document.getElementById('btn-reset').click();
+        };
+
+        document.getElementById('btn-solution').onclick = () => {
+            let sol = LEVELS[currentLevelId - 1].solution;
+            // คัดลอกแบบ Deep Copy พร้อมกำหนด ID ใหม่
+            program = JSON.parse(JSON.stringify(sol));
+            function assignIds(arr) {
+                arr.forEach(b => {
+                    b.id = generateId();
+                    if (b.children) assignIds(b.children);
+                });
+            }
+            assignIds(program);
+            setInsertTarget(null);
+            renderWorkspace();
+            document.getElementById('btn-reset').click();
+            showOutput('โหลดเฉลยแนวทางเรียบร้อยแล้ว ลองกดเริ่มทำงานดูสิ', 'neutral');
+        };
+
+        // --- เริ่มต้นเกม ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadProgress();
+            loadLevel(1);
+        });
+
+    </script>
+</body>
+</html>
